@@ -62,6 +62,7 @@
             {   
                 $_SESSION['s2p_handle_payment'] = true;
                 //return Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_WEB)."index.php/globalpay/"; 
+		 Mage::getModel('globalpay/logger')->write(Mage::getUrl('globalpay', array('_secure' => true)), 'info');
 		return Mage::getUrl('globalpay', array('_secure' => true));
             }	
 	}

@@ -19,9 +19,9 @@ class Smart2Pay_Globalpay_Block_Paymethod_Sendform extends Mage_Core_Block_Templ
                 $this->form_data['method_id'] = $_SESSION['globalpay_method'];
                 $this->form_data['order_id'] = $order_id;
                 $this->form_data['currency'] = $order->getOrderCurrency()->getCurrencyCode();
-                $this->form_data['amount'] = number_format($order->getGrandTotal(), 2)*100;
-                $this->form_data['customer_name'] = $order->getCustomerName();
-                $this->form_data['customer_email'] = $order->getCustomerEmail();
+                $this->form_data['amount'] = number_format($order->getGrandTotal(), 2, '.', '') * 100;
+                $this->form_data['customer_name'] = substr(trim($order->getCustomerName()),0,30);
+                $this->form_data['customer_email'] = trim($order->getCustomerEmail());
                 $this->form_data['country'] = $order->getBillingAddress()->getCountry();
                 
                 $messageToHash = 'MerchantID'.$this->form_data['mid']
@@ -31,9 +31,9 @@ class Smart2Pay_Globalpay_Block_Paymethod_Sendform extends Mage_Core_Block_Templ
                                     .'ReturnURL'.$this->form_data['return_url']
                                     .'IncludeMethodIDs'.$this->form_data['methods'];
                 
-                if($this->form_data['send_customer_name'])
+//                if($this->form_data['send_customer_name'])
                     $messageToHash .= "CustomerName".$this->form_data['customer_name'];
-                if($this->form_data['send_customer_email'])
+//                if($this->form_data['send_customer_email'])
                     $messageToHash .= "CustomerEmail".$this->form_data['customer_email'];
                 if($this->form_data['send_country'])
                     $messageToHash .= "Country".$this->form_data['country'];
@@ -41,14 +41,14 @@ class Smart2Pay_Globalpay_Block_Paymethod_Sendform extends Mage_Core_Block_Templ
                     $messageToHash .= "MethodID".$this->form_data['method_id'];
                 }
                     
-                if($this->form_data['send_product_description']){
+//                if($this->form_data['send_product_description']){
                     if($this->form_data['product_description_ref']){
                         $messageToHash .= "Description"."Ref. no.: ".$this->form_data['order_id'];
                     }
                     else{
                         $messageToHash .= "Description".$this->form_data['product_description_custom'];
                     }
-                }
+//                }
                 if($this->form_data['skip_payment_page']){
                     if(!in_array($this->form_data['method_id'], array(1, 20))){
                         $messageToHash .= "SkipHpp1";
@@ -62,6 +62,8 @@ class Smart2Pay_Globalpay_Block_Paymethod_Sendform extends Mage_Core_Block_Templ
                 }
                                 
                 $messageToHash .= $this->form_data['signature'];
+
+		Mage::getModel('globalpay/logger')->write($messageToHash, 'info');
 
                 $this->form_data['hash'] = Mage::helper('globalpay/helper')->computeSHA256Hash($messageToHash);
                 

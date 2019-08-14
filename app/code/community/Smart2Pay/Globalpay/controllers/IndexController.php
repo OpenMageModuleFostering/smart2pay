@@ -14,9 +14,14 @@ class Smart2pay_Globalpay_IndexController extends Mage_Core_Controller_Front_Act
             unset($_SESSION['s2p_handle_payment']);
             $this->loadLayout();
             $this->renderLayout();
+	    Mage::getModel('globalpay/logger')->write('>>> Redirect OK :::', 'info');
+	
         }
         else{
+ 	    Mage::getModel('globalpay/logger')->write('>>> Redirect NOT OK, session empty. :::', 'info');
+
             $this->_redirectUrl(Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK) . 'checkout/cart/');
+
         }        
     }    
 
@@ -37,56 +42,67 @@ class Smart2pay_Globalpay_IndexController extends Mage_Core_Controller_Front_Act
             $order = Mage::getModel('sales/order');
 
         try {
-            parse_str(file_get_contents("php://input"), $response);
+            $raw_input = file_get_contents("php://input");
+	    parse_str($raw_input, $response);
             $recomposedHashString = "NotificationType" . $response['NotificationType'] . "MethodID".$response['MethodID']."PaymentID".$response['PaymentID']."MerchantTransactionID".$response['MerchantTransactionID']."StatusID".$response['StatusID']."Amount".$response['Amount']."Currency".$response['Currency'].$payMethod->method_config['signature'];
 
             Mage::getModel('globalpay/logger')->write('StatusID = ' . $response['StatusID'], 'info');
             Mage::getModel('globalpay/logger')->write('MerchantTransactionID = ' . $response['MerchantTransactionID'], 'info');
-
+	
             // Message is intact
             if($s2pHelper->computeSHA256Hash($recomposedHashString) == $response['Hash']){
 
                 Mage::getModel('globalpay/logger')->write('Hashes match', 'info');
-
+		
                 $order->loadByIncrementId($response['MerchantTransactionID']);
-
+		$order->addStatusHistoryComment('Smart2Pay :: notification received:<br>' . $raw_input);
                 /**
                  * Check status ID
                  */
                 switch($response['StatusID']){
                     // Status = success
                     case "2":
-                        $order->addStatusHistoryComment('Smart2Pay :: order has been paid.', $payMethod->method_config['order_status_on_2']);
-                        if ($payMethod->method_config['auto_invoice']) {
-                            // Create and pay Order Invoice
-                            if($order->canInvoice()) {
-                                $invoice = Mage::getModel('sales/service_order', $order)->prepareInvoice();
-                                $invoice->setRequestedCaptureCase(Mage_Sales_Model_Order_Invoice::CAPTURE_OFFLINE);
-                                $invoice->register();
-                                $transactionSave = Mage::getModel('core/resource_transaction')
-                                    ->addObject($invoice)
-                                    ->addObject($invoice->getOrder());
-                                $transactionSave->save();
-                                $order->addStatusHistoryComment('Smart2Pay :: order has been automatically invoiced.', $payMethod->method_config['order_status_on_2']);
-                            } else {
-                                Mage::getModel('globalpay/logger')->write('Order can not be invoiced', 'warning');
-                            }
-                        }
-                        if ($payMethod->method_config['auto_ship']) {
-                            if ($order->canShip()) {
-                                $itemQty =  $order->getItemsCollection()->count();
-                                $shipment = Mage::getModel('sales/service_order', $order)->prepareShipment($itemQty);
-                                $shipment = new Mage_Sales_Model_Order_Shipment_Api();
-                                $shipmentId = $shipment->create($order->getIncrementId());
-                                $order->addStatusHistoryComment('Smart2Pay :: order has been automatically shipped.', $payMethod->method_config['order_status_on_2']);
-                            } else {
-                                Mage::getModel('globalpay/logger')->write('Order can not be shipped', 'warning');
-                            }
-                        }
-                        if ($payMethod->method_config['notify_customer']) {
-                            // Inform customer
-                            $this->informCustomer($order, $response['Amount'], $response['Currency']);
-                        }
+                        // cheking amount  and currency
+			$orderAmount =  number_format($order->getGrandTotal(), 2, '.', '') * 100;
+			$orderCurrency = $order->getOrderCurrency()->getCurrencyCode();
+
+			if($orderAmount != $response['Amount'] || $orderCurrency != $response['Currency']){
+				$order->addStatusHistoryComment('Smart2Pay :: notification has different amount and/or currency!. Please contact support@smart2pay.com', $payMethod->method_config['order_status_on_4']);
+			}
+			else{
+
+				$order->addStatusHistoryComment('Smart2Pay :: order has been paid. [MethodID:'. $response['MethodID'] .']', $payMethod->method_config['order_status_on_2']);
+        	                if ($payMethod->method_config['auto_invoice']) {
+                	            // Create and pay Order Invoice
+                        	    if($order->canInvoice()) {
+	                                $invoice = Mage::getModel('sales/service_order', $order)->prepareInvoice();
+	                                $invoice->setRequestedCaptureCase(Mage_Sales_Model_Order_Invoice::CAPTURE_OFFLINE);
+	                                $invoice->register();
+	                                $transactionSave = Mage::getModel('core/resource_transaction')
+                	                    ->addObject($invoice)
+        	                            ->addObject($invoice->getOrder());
+	                                $transactionSave->save();
+	                                $order->addStatusHistoryComment('Smart2Pay :: order has been automatically invoiced.', $payMethod->method_config['order_status_on_2']);
+	                            } else {
+	                                Mage::getModel('globalpay/logger')->write('Order can not be invoiced', 'warning');
+	                            }
+	                        }
+	                        if ($payMethod->method_config['auto_ship']) {
+	                            if ($order->canShip()) {
+	                                $itemQty =  $order->getItemsCollection()->count();
+	                                $shipment = Mage::getModel('sales/service_order', $order)->prepareShipment($itemQty);
+	                                $shipment = new Mage_Sales_Model_Order_Shipment_Api();
+	                                $shipmentId = $shipment->create($order->getIncrementId());
+	                                $order->addStatusHistoryComment('Smart2Pay :: order has been automatically shipped.', $payMethod->method_config['order_status_on_2']);
+	                            } else {
+	                                Mage::getModel('globalpay/logger')->write('Order can not be shipped', 'warning');
+	                            }
+	                        }
+	                        if ($payMethod->method_config['notify_customer']) {
+	                            // Inform customer
+	                            $this->informCustomer($order, $response['Amount'], $response['Currency']);
+	                        }
+			}
                         break;
                     // Status = canceled
                     case 3:

@@ -1,19 +1,19 @@
 
-<div style="<?=($this->form_data['debug_form']) ? "display: table;" : "display: none;" ?>">
+<div style="<?php echo ($this->form_data['debug_form']) ? "display: table;" : "display: none;" ?>">
 
     <?php if($this->form_data['debug_form']): ?>
-    <p><b>Message to hash</b>: <?=$this->message_to_hash?></p>
-    <p><b>Hash</b>: <?=$this->hash?></p>
+    <p><b>Message to hash</b>: <?php echo $this->message_to_hash?></p>
+    <p><b>Hash</b>: <?php echo $this->hash?></p>
     <?php endif; ?>
 
-    <form action="<?= $this->form_data['post_url'] ?>" id="s2pform" method="POST" <?php if($this->form_data['redirect_in_iframe']) echo 'target="merchantIframe"'; ?>>
+    <form action="<?php echo  $this->form_data['post_url'] ?>" id="s2pform" method="POST" <?php if($this->form_data['redirect_in_iframe']) echo 'target="merchantIframe"'; ?>>
         <table>
             <tr>
                 <td>
                     MerchantID
                 </td>
                 <td>
-                    <input type="text" name="MerchantID" value="<?= $this->form_data['mid'] ?>"/>
+                    <input type="text" name="MerchantID" value="<?php echo  $this->form_data['mid'] ?>"/>
                 </td>
             </tr>
             <tr>
@@ -21,7 +21,7 @@
                     MerchantTransactionID
                 </td>
                 <td>
-                    <input type="text" name="MerchantTransactionID" value="<?= $this->form_data['order_id'] ?>"/>
+                    <input type="text" name="MerchantTransactionID" value="<?php echo  $this->form_data['order_id'] ?>"/>
                 </td>
             </tr>
             <tr>
@@ -29,7 +29,7 @@
                     Amount
                 </td>
                 <td>
-                    <input type="text" name="Amount" value="<?= $this->form_data['amount'] ?>"/>
+                    <input type="text" name="Amount" value="<?php echo  $this->form_data['amount'] ?>"/>
                 </td>
             </tr>
             <tr>
@@ -37,7 +37,7 @@
                     Currency
                 </td>
                 <td>
-                    <input type="text" name="Currency" value="<?= $this->form_data['currency'] ?>"/>
+                    <input type="text" name="Currency" value="<?php echo  $this->form_data['currency'] ?>"/>
                 </td>
             </tr>
             <tr>
@@ -45,7 +45,7 @@
                     ReturnURL
                 </td>
                 <td>
-                    <input type="text" name="ReturnURL" value="<?= $this->form_data['return_url'] ?>"/>
+                    <input type="text" name="ReturnURL" value="<?php echo  $this->form_data['return_url'] ?>"/>
                 </td>
             </tr>
             <tr>
@@ -53,7 +53,7 @@
                     IncludeMethodIDs
                 </td>
                 <td>
-                    <input type="text" name="IncludeMethodIDs" value="<?= $this->form_data['methods'] ?>"/>
+                    <input type="text" name="IncludeMethodIDs" value="<?php echo  $this->form_data['methods'] ?>"/>
                 </td>
             </tr>
             <tr>
@@ -61,27 +61,23 @@
                     Optional:
                 </td>
             </tr>
-            <?php if($this->form_data['send_customer_name']): ?>
             <tr>
                 <td>
                     CustomerName
                 </td>
                 <td>
-                    <input type="text" name="CustomerName" value="<?= $this->form_data['customer_name'] ?>"/>
+                    <input type="text" name="CustomerName" value="<?php echo  $this->form_data['customer_name'] ?>"/>
                 </td>
             </tr>
-            <?php endif; ?>
 
-            <?php if($this->form_data['send_customer_email']): ?>
             <tr>
                 <td>
                     CustomerEmail
                 </td>
                 <td>
-                    <input type="text" name="CustomerEmail" value="<?= $this->form_data['customer_email'] ?>"/>
+                    <input type="text" name="CustomerEmail" value="<?php echo  $this->form_data['customer_email'] ?>"/>
                 </td>
             </tr>
-            <?php endif; ?>
 
             <?php if($this->form_data['send_country']): ?>
             <tr>
@@ -89,7 +85,7 @@
                     Country
                 </td>
                 <td>
-                    <input type="text" name="Country" value="<?= $this->form_data['country'] ?>"/>
+                    <input type="text" name="Country" value="<?php echo  $this->form_data['country'] ?>"/>
                 </td>
             </tr>
             <?php endif; ?>
@@ -100,19 +96,18 @@
                     MethodID
                 </td>
                 <td>
-                    <input type="text" name="MethodID" value="<?= $this->form_data['method_id'] ?>"/>
+                    <input type="text" name="MethodID" value="<?php echo  $this->form_data['method_id'] ?>"/>
                 </td>
             </tr>
             <?php endif; ?>
 
-            <?php if($this->form_data['send_product_description']): ?>
             <?php if($this->form_data['product_description_ref']): ?>
                 <tr>
                     <td>
                         Description
                     </td>
                     <td>
-                        <input type="text" name="Description" value="<?= "Ref. no.: ".$this->form_data['order_id'] ?>"/>
+                        <input type="text" name="Description" value="<?php echo  "Ref. no.: ".$this->form_data['order_id'] ?>"/>
                     </td>
                 </tr>
                 <?php else: ?>
@@ -121,10 +116,9 @@
                         Description
                     </td>
                     <td>
-                        <input type="text" name="Description" value="<?= $this->form_data['product_description_custom'] ?>"/>
+                        <input type="text" name="Description" value="<?php echo  $this->form_data['product_description_custom'] ?>"/>
                     </td>
                 </tr>
-                <?php endif; ?>
             <?php endif; ?>
 
             <?php if($this->form_data['skip_payment_page']): ?>
@@ -157,7 +151,7 @@
                     SkinID
                 </td>
                 <td>
-                    <input type="text" name="SkinID" value="<?=$this->form_data['skin_id']?>"/>
+                    <input type="text" name="SkinID" value="<?php echo $this->form_data['skin_id']?>"/>
                 </td>
             </tr>
             <?php endif; ?>
@@ -167,7 +161,7 @@
                     Hash
                 </td>
                 <td>
-                    <input type="text" name="Hash" value="<?= $this->form_data['hash'] ?>"/>
+                    <input type="text" name="Hash" value="<?php echo  $this->form_data['hash'] ?>"/>
                 </td>
             </tr>
             <tr>
