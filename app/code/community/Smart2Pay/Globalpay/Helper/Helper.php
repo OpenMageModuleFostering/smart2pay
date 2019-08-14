@@ -2,6 +2,68 @@
 
 class Smart2Pay_Globalpay_Helper_Helper extends Mage_Core_Helper_Abstract
 {
+    public function mage_exception( $code, $messages_arr )
+    {
+        if( is_string( $messages_arr ) )
+            $messages_arr = array( Mage_Core_Model_Message::ERROR => $messages_arr );
+
+        if( empty( $code ) )
+            $code = -1;
+
+        if( empty( $messages_arr ) or !is_array( $messages_arr ) )
+            return Mage::exception( 'Mage_Core', $this->__( 'Unknown error' ), $code );
+
+        $exception_obj = new Mage_Core_Exception();
+
+        $error_types = array( Mage_Core_Model_Message::NOTICE, Mage_Core_Model_Message::WARNING, Mage_Core_Model_Message::ERROR, Mage_Core_Model_Message::SUCCESS );
+        $message_factory_obj = new Mage_Core_Model_Message();
+        foreach( $error_types as $type )
+        {
+            if( empty( $messages_arr[$type] ) or !is_array( $messages_arr[$type] ) )
+                continue;
+
+            foreach( $messages_arr[$type] as $message_arr )
+            {
+                if( is_string( $message_arr ) )
+                    $message_arr = array( 'message' => $message_arr );
+
+                if( !is_array( $message_arr ) )
+                    continue;
+
+                if( empty( $message_arr['class'] ) )
+                    $message_arr['class'] = '';
+                if( empty( $message_arr['method'] ) )
+                    $message_arr['method'] = '';
+
+                $message_obj = false;
+                switch( $type )
+                {
+                    case Mage_Core_Model_Message::NOTICE:
+                        $message_obj = $message_factory_obj->notice( $message_arr['message'], $message_arr['class'], $message_arr['method'] );
+                    break;
+                    case Mage_Core_Model_Message::WARNING:
+                        $message_obj = $message_factory_obj->warning( $message_arr['message'], $message_arr['class'], $message_arr['method'] );
+                    break;
+                    case Mage_Core_Model_Message::ERROR:
+                        $message_obj = $message_factory_obj->error( $message_arr['message'], $message_arr['class'], $message_arr['method'] );
+                        $exception_obj->setMessage( $message_arr['message'].'<br/>', true );
+                    break;
+                    case Mage_Core_Model_Message::SUCCESS:
+                        $message_obj = $message_factory_obj->success( $message_arr['message'], $message_arr['class'], $message_arr['method'] );
+                    break;
+                }
+
+                if( empty( $message_obj ) )
+                    continue;
+
+                $exception_obj->addMessage( $message_obj );
+            }
+        }
+
+
+        return $exception_obj;
+    }
+
     public function isAdmin()
     {
         if( Mage::app()->getStore()->isAdmin()
@@ -9,6 +71,133 @@ class Smart2Pay_Globalpay_Helper_Helper extends Mage_Core_Helper_Abstract
             return true;
 
         return false;
+    }
+
+    public function s2p_mb_substr( $message, $start, $length )
+    {
+        if( function_exists( 'mb_substr' ) )
+            return mb_substr( $message, $start, $length, 'UTF-8' );
+        else
+            return substr( $message, $start, $length );
+    }
+
+    public function format_surcharge_fixed_amount_label( $fixed_amount, $params = false )
+    {
+        if( empty( $params ) or !is_array( $params ) )
+            $params = array();
+
+        if( !isset( $params['use_translate'] ) )
+            $params['use_translate'] = true;
+
+        $label = 'Payment Method Fixed Fee';
+
+        return (!empty( $params['use_translate'] )?$this->__( $label ):$label);
+    }
+
+    public function format_surcharge_fixed_amount_value( $fixed_amount, $params = false )
+    {
+        if( empty( $params ) or !is_array( $params ) )
+            $params = array();
+
+        if( empty( $params['format_price'] ) )
+            $params['format_price'] = false;
+
+        if( !empty( $params['format_price'] )
+            and (!isset( $params['format_currency'] ) or !($params['format_currency'] instanceof Mage_Directory_Model_Currency)) )
+            $params['format_currency'] = Mage::app()->getStore()->getDefaultCurrency();
+        else
+            $params['format_currency'] = false;
+
+        if( !isset( $params['include_container'] ) )
+            $params['include_container'] = true;
+
+        if( empty( $params['format_options'] ) or !is_array( $params['format_options'] ) )
+            $params['format_options'] = array();
+        if( !isset( $params['format_options']['precision'] ) )
+            $params['format_options']['precision'] = 2;
+
+        if( empty( $params['format_price'] )
+            or empty( $params['format_currency'] ) )
+            $amount_str = $fixed_amount;
+
+        else
+            $amount_str = $params['format_currency']->format( $fixed_amount, $params['format_options'], $params['include_container'] );
+
+        return $amount_str;
+    }
+
+    public function format_surcharge_percent_label( $amount, $percent, $params = false )
+    {
+        if( empty( $params ) or !is_array( $params ) )
+            $params = array();
+
+        if( !isset( $params['use_translate'] ) )
+            $params['use_translate'] = true;
+
+        $label = 'Payment Method Percent';
+
+        return (!empty( $params['use_translate'] )?$this->__( $label ):$label);
+    }
+
+    public function format_surcharge_percent_value( $amount, $percent )
+    {
+        return $percent.'%';
+    }
+
+    public function format_surcharge_label( $amount, $percent, $params = false )
+    {
+        if( empty( $params ) or !is_array( $params ) )
+            $params = array();
+
+        if( !isset( $params['include_percent'] ) )
+            $params['include_percent'] = true;
+        if( !isset( $params['use_translate'] ) )
+            $params['use_translate'] = true;
+
+        if( !empty( $params['use_translate'] ) )
+            $label = $this->__( 'Payment Method Fee' );
+
+        else
+        {
+            $label = 'Payment Method Fee';
+
+            if( !empty( $params['include_percent'] ) )
+                $label .= ' (' . $percent . '%)';
+        }
+
+        return $label;
+    }
+
+    public function format_surcharge_value( $amount, $percent, $params = false )
+    {
+        if( empty( $params ) or !is_array( $params ) )
+            $params = array();
+
+        if( empty( $params['format_price'] ) )
+            $params['format_price'] = false;
+
+        if( !empty( $params['format_price'] )
+        and (!isset( $params['format_currency'] ) or !($params['format_currency'] instanceof Mage_Directory_Model_Currency)) )
+            $params['format_currency'] = Mage::app()->getStore()->getDefaultCurrency();
+        else
+            $params['format_currency'] = false;
+
+        if( !isset( $params['include_container'] ) )
+            $params['include_container'] = true;
+
+        if( empty( $params['format_options'] ) or !is_array( $params['format_options'] ) )
+            $params['format_options'] = array();
+        if( !isset( $params['format_options']['precision'] ) )
+            $params['format_options']['precision'] = 2;
+
+        if( empty( $params['format_price'] )
+         or empty( $params['format_currency'] ) )
+            $amount_str = $amount;
+
+        else
+            $amount_str = $params['format_currency']->format( $amount, $params['format_options'], $params['include_container'] );
+
+        return $amount_str;
     }
 
     public function computeSHA256Hash( $message )

@@ -190,4 +190,5 @@
 "EntityNumber","Entity Number"
 "Payment Method","Payment Method"
 "Last Update","Last Update"
-"No information available","No information available"
+"Payment Method Fee","Payment Method Fee"
+"Payment Confirmation","Payment confirmation for order #%s"

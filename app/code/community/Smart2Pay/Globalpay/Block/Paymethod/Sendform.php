@@ -14,41 +14,57 @@ class Smart2Pay_Globalpay_Block_Paymethod_Sendform extends Mage_Core_Block_Templ
         $s2pLogger = Mage::getModel( 'globalpay/logger' );
         /** @var Smart2Pay_Globalpay_Model_Transactionlogger $s2pTransactionLogger */
         $s2pTransactionLogger = Mage::getModel( 'globalpay/transactionlogger' );
-
         /** @var Smart2Pay_Globalpay_Model_Pay $paymentModel */
         $paymentModel = Mage::getModel('globalpay/pay');
+        /** @var Smart2Pay_Globalpay_Helper_Helper $helper_obj */
+        $helper_obj = Mage::helper( 'globalpay/helper' );
+
         $order_id = Mage::getSingleton('checkout/session')->getLastOrderId();
+
         /** @var Mage_Sales_Model_Order $order */
         $order = Mage::getModel('sales/order');
-        $order->load($order_id);
-        $order_id = $order->getRealOrderId();
+
+
+        $order->load( $order_id );
+
+        $merchant_transaction_id = $order->getRealOrderId();
+
+        // assume live environment if we don't get something valid from config
+        $environment = (!empty( $paymentModel->method_config['environment'] )?strtolower( trim( $paymentModel->method_config['environment'] ) ):'live');
+
+        if( $environment == 'demo' )
+        {
+            $merchant_transaction_id = base_convert( time(), 10, 36 ).'_'.$merchant_transaction_id;
+        }
 
         // FORM DATA
         $this->form_data = $paymentModel->method_config;
+
+        $this->form_data['environment'] = $environment;
 
         if( !empty( $_SESSION['globalpay_method'] ) )
             $this->form_data['method_id'] = $_SESSION['globalpay_method'];
         else
             $this->form_data['method_id'] = 0;
 
-        $this->form_data['order_id'] = $order_id;
+        $this->form_data['order_id'] = $merchant_transaction_id;
         $this->form_data['currency'] = $order->getOrderCurrency()->getCurrencyCode();
-        $this->form_data['amount'] = number_format($order->getGrandTotal(), 2, '.', '') * 100;
+        $this->form_data['amount'] = number_format( $order->getGrandTotal(), 2, '.', '' ) * 100;
 
         //anonymous user, get the info from billing details
         if( $order->getCustomerId() === NULL )
         {
-            $this->form_data['customer_last_name'] = substr(trim($order->getBillingAddress()->getLastname()),0,30);
-            $this->form_data['customer_first_name'] = substr(trim($order->getBillingAddress()->getFirstname()),0,30);
-            $this->form_data['customer_name'] = substr(trim($this->form_data['customer_first_name'] . ' ' . $this->form_data['customer_last_name']),0,30);
+            $this->form_data['customer_last_name'] = $helper_obj->s2p_mb_substr( $order->getBillingAddress()->getLastname(), 0, 30 );
+            $this->form_data['customer_first_name'] = $helper_obj->s2p_mb_substr( $order->getBillingAddress()->getFirstname(), 0, 30 );
+            $this->form_data['customer_name'] = $helper_obj->s2p_mb_substr( $this->form_data['customer_first_name'] . ' ' . $this->form_data['customer_last_name'], 0, 30 );
         }
         //else, they're a normal registered user.
         else
         {
             $customer = Mage::getModel('customer/customer')->load($order->getCustomerId());
-            $this->form_data['customer_name'] = substr(trim($order->getCustomerName()),0,30);
-            $this->form_data['customer_last_name'] = substr(trim($customer->getDefaultBillingAddress()->getLastname()),0,30);
-            $this->form_data['customer_first_name'] = substr(trim($customer->getDefaultBillingAddress()->getFirstname()),0,30);
+            $this->form_data['customer_name'] = $helper_obj->s2p_mb_substr( $order->getCustomerName(), 0, 30 );
+            $this->form_data['customer_last_name'] = $helper_obj->s2p_mb_substr( $customer->getDefaultBillingAddress()->getLastname(), 0, 30 );
+            $this->form_data['customer_first_name'] = $helper_obj->s2p_mb_substr( $customer->getDefaultBillingAddress()->getFirstname(), 0, 30 );
         }
 
         $this->form_data['customer_email'] = trim($order->getCustomerEmail());
@@ -95,7 +111,7 @@ class Smart2Pay_Globalpay_Block_Paymethod_Sendform extends Mage_Core_Block_Templ
 
         $s2pLogger->write( 'Form hash: ['.$messageToHash.']', 'info' );
 
-        $this->form_data['hash'] = Mage::helper( 'globalpay/helper' )->computeSHA256Hash( $messageToHash );
+        $this->form_data['hash'] = $helper_obj->computeSHA256Hash( $messageToHash );
 
         $this->message_to_hash = $messageToHash;
         $this->hash = $this->form_data['hash'];
@@ -103,10 +119,11 @@ class Smart2Pay_Globalpay_Block_Paymethod_Sendform extends Mage_Core_Block_Templ
         $s2p_transaction_arr = array();
         if( !empty( $this->form_data['method_id'] ) )
             $s2p_transaction_arr['method_id'] = $this->form_data['method_id'];
-        if( !empty( $order_id ) )
-            $s2p_transaction_arr['merchant_transaction_id'] = $order_id;
+        if( !empty( $merchant_transaction_id ) )
+            $s2p_transaction_arr['merchant_transaction_id'] = $merchant_transaction_id;
         if( !empty( $this->form_data['site_id'] ) )
             $s2p_transaction_arr['site_id'] = $this->form_data['site_id'];
+        $s2p_transaction_arr['environment'] = $environment;
 
         $s2pTransactionLogger->write( $s2p_transaction_arr );
 

@@ -173,7 +173,7 @@ class Smart2pay_Globalpay_IndexController extends Mage_Core_Controller_Front_Act
                         $orderCurrency = $order->getOrderCurrency()->getCurrencyCode();
 
                         if( strcmp( $orderAmount, $response['Amount'] ) != 0
-                        and $orderCurrency != $response['Currency'] )
+                         or $orderCurrency != $response['Currency'] )
                             $order->addStatusHistoryComment( 'Smart2Pay :: notification has different amount ['.$orderAmount.'/'.$response['Amount'] . '] and/or currency ['.$orderCurrency.'/' . $response['Currency'] . ']!. Please contact support@smart2pay.com', $payMethod->method_config['order_status_on_4'] );
 
                         else
@@ -301,23 +301,29 @@ class Smart2pay_Globalpay_IndexController extends Mage_Core_Controller_Front_Act
     
     public function informCustomer(Mage_Sales_Model_Order $order, $amount, $currency)
     {
+        /** @var Smart2Pay_Globalpay_Model_Logger $s2pLogger */
+        $s2pLogger = Mage::getModel( 'globalpay/logger' );
+
         try
         {
             /** @var $order Mage_Sales_Model_Order */
+            /** @var $store_obj Mage_Core_Model_Store */
             /**
              * get data for template
              */
-            $siteUrl = Mage::getBaseUrl( Mage_Core_Model_Store::URL_TYPE_LINK );
-            $siteName = Mage::app()->getWebsite(1)->getName();
+            $store_obj = $order->getStore();
 
-            $subject = $siteName.' - Payment confirmation';
+            $siteUrl = $store_obj->getBaseUrl( Mage_Core_Model_Store::URL_TYPE_LINK ); // Mage::getBaseUrl( Mage_Core_Model_Store::URL_TYPE_LINK );
+            $siteName = Mage::app()->getWebsite( $store_obj->getWebsiteId() )->getName();
 
-            $supportEmail = Mage::getStoreConfig('trans_email/ident_support/email');
-            $supportName = Mage::getStoreConfig('trans_email/ident_support/name');
+            $supportEmail = Mage::getStoreConfig( 'trans_email/ident_support/email', $order->getStoreId() );
+            $supportName = Mage::getStoreConfig( 'trans_email/ident_support/name', $order->getStoreId() );
 
-            $localeCode = Mage::getStoreConfig('general/locale/code', $order->getStoreId());
+            $localeCode = Mage::getStoreConfig( 'general/locale/code', $order->getStoreId() );
 
-            $templateId = Mage::getStoreConfig(self::XML_PATH_EMAIL_PAYMENT_CONFIRMATION);
+            $templateId = Mage::getStoreConfig( self::XML_PATH_EMAIL_PAYMENT_CONFIRMATION, $order->getStoreId() );
+
+            $order_increment_id = $order->getRealOrderId();
 
 
             /** @var $mailTemplate Mage_Core_Model_Email_Template */
@@ -328,12 +334,17 @@ class Smart2pay_Globalpay_IndexController extends Mage_Core_Controller_Front_Act
                 $mailTemplate->loadDefault($templateId, $localeCode);
             }
 
-            $mailTemplate->setSenderName($supportName);
-            $mailTemplate->setSenderEmail($supportEmail);
-            $mailTemplate->setTemplateSubject('Payment Confirmation');
-            $mailTemplate->setTemplateSubject($subject);
+            if( !($subject = $mailTemplate->getTemplateSubject()) )
+                $subject = $this->__( 'Payment confirmation', $order_increment_id );
 
-            $mailTemplate->send($order->getCustomerEmail(), $order->getCustomerName(), array(
+            $subject = $siteName.' - '.$subject;
+
+            $mailTemplate->setSenderName( $supportName );
+            $mailTemplate->setSenderEmail( $supportEmail );
+
+            $mailTemplate->setTemplateSubject( $subject );
+
+            if( !$mailTemplate->send( $order->getCustomerEmail(), $order->getCustomerName(), array(
                     'site_url' => $siteUrl,
                     'order_increment_id' => $order->getRealOrderId(),
                     'site_name' => $siteName,
@@ -343,7 +354,9 @@ class Smart2pay_Globalpay_IndexController extends Mage_Core_Controller_Front_Act
                     'currency' => $currency,
                     'support_email' => $supportEmail
                 )
-            );
+            ) )
+                $s2pLogger->write( 'Error sending customer informational email to ['.$order->getCustomerEmail().']', 'email_template' );
+
         } catch (Exception $e) {
             Mage::getModel('globalpay/logger')->write($e->getMessage(), 'exception');
         }
@@ -488,30 +501,33 @@ class Smart2pay_Globalpay_IndexController extends Mage_Core_Controller_Front_Act
         try
         {
             /** @var $order Mage_Sales_Model_Order */
+            /** @var $store_obj Mage_Core_Model_Store */
             /**
              * get data for template
              */
-            $siteUrl = Mage::getBaseUrl( Mage_Core_Model_Store::URL_TYPE_LINK );
-            $siteName = Mage::app()->getWebsite(1)->getName();
+            $store_obj = $order->getStore();
+
+            //$siteUrl = Mage::getBaseUrl( Mage_Core_Model_Store::URL_TYPE_LINK );
+            // $siteName = Mage::app()->getWebsite(1)->getName();
+            //$siteName = Mage::app()->getWebsite()->getName();
+
+            $siteUrl = $store_obj->getBaseUrl( Mage_Core_Model_Store::URL_TYPE_LINK );
+            $siteName = Mage::app()->getWebsite( $store_obj->getWebsiteId() )->getName();
 
             $order_increment_id = $order->getRealOrderId();
 
-            $subject = $siteName." - ".$this->__( 'PaymentInstructionsSubject', $order_increment_id );
-
-            $supportEmail = Mage::getStoreConfig( 'trans_email/ident_support/email' );
-            $supportName = Mage::getStoreConfig( 'trans_email/ident_support/name' );
+            $supportEmail = Mage::getStoreConfig( 'trans_email/ident_support/email', $order->getStoreId() );
+            $supportName = Mage::getStoreConfig( 'trans_email/ident_support/name', $order->getStoreId() );
 
             $localeCode = Mage::getStoreConfig( 'general/locale/code', $order->getStoreId() );
 
             if( ($s2p_transaction_arr = $s2pTransactionLogger->getTransactionDetailsAsArray( $order_increment_id ))
             and $s2p_transaction_arr['method_id'] == $payMethod::PAYMENT_METHOD_SIBS )
             {
-                $s2pLogger->write( '['.self::XML_PATH_EMAIL_PAYMENT_INSTRUCTIONS_SIBS.']', 'email_template' );
-                $templateId = Mage::getStoreConfig( self::XML_PATH_EMAIL_PAYMENT_INSTRUCTIONS_SIBS );
+                $templateId = Mage::getStoreConfig( self::XML_PATH_EMAIL_PAYMENT_INSTRUCTIONS_SIBS, $order->getStoreId() );
             } else
             {
-                $s2pLogger->write( '['.self::XML_PATH_EMAIL_PAYMENT_INSTRUCTIONS.']', 'email_template' );
-                $templateId = Mage::getStoreConfig( self::XML_PATH_EMAIL_PAYMENT_INSTRUCTIONS );
+                $templateId = Mage::getStoreConfig( self::XML_PATH_EMAIL_PAYMENT_INSTRUCTIONS, $order->getStoreId() );
             }
 
             /** @var $mailTemplate Mage_Core_Model_Email_Template */
@@ -522,9 +538,14 @@ class Smart2pay_Globalpay_IndexController extends Mage_Core_Controller_Front_Act
             else
                 $mailTemplate->loadDefault( $templateId, $localeCode );
 
+            if( !($subject = $mailTemplate->getTemplateSubject()) )
+                $subject = $this->__( 'PaymentInstructionsSubject', $order_increment_id );
+
+            $subject = $siteName.' - '.$subject;
+
             $mailTemplate->setSenderName( $supportName );
             $mailTemplate->setSenderEmail( $supportEmail );
-            $mailTemplate->setTemplateSubject( $this->__('PaymentInstructions') );
+
             $mailTemplate->setTemplateSubject( $subject );
 
             // Extra details
