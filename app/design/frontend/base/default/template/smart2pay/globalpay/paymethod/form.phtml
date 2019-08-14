@@ -1,0 +1,155 @@
+<?php
+    $_code = $this->getMethodCode();
+    $s2pMethods = $this->getPaymentMethods();
+?>
+
+<input type="hidden" id="s2p-payment-method" name="payment[method_id]" value="<?php echo isset($s2pMethods[0]['method_id']) ? $s2pMethods[0]['method_id'] : ""?>" />
+
+<script src=" https://apitest.smart2pay.com/Scripts/jquery-1.7.2.min.js "></script>
+
+<script type="text/javascript">
+
+    jQuery.noConflict();
+
+    <?php if(empty($s2pMethods)): ?>
+        jQuery('#p_method_globalpay').parent().hide();
+    <?php endif; ?>
+
+    function s2pChooseMethod(methodId){
+        jQuery('#s2p-payment-method').removeAttr('disabled');
+        jQuery('#s2p-payment-method').val(methodId);
+        payment.save();
+    }
+
+    <?php if($this->method_config['autoselect_s2p'] && !empty($s2pMethods)): ?>
+        jQuery(function(){
+            jQuery('html, body').mousemove(function(){
+                jQuery('#s2p-payment-method').removeAttr('disabled');
+            });
+            jQuery('#p_method_globalpay').click();
+        });
+    <?php endif; ?>
+</script>
+
+<div id="payment_form_globalpay" style="display: none;">
+    <?php if($this->method_config['send_payment_method'] && !empty($s2pMethods)): ?>
+        <p><?php echo $this->__('Please choose one of the following payment methods.'); ?><br /> <i>(<?php echo $this->__('If you choose to simply continue, default method will be'); ?> <?php echo isset($s2pMethods[0]['display_name']) ? $s2pMethods[0]['display_name'] : ""?>)</i></p>
+        <table>
+            <?php
+                if($this->method_config['show_methods_in_grid']): //show methods in grid
+                    $grid_col_number = ((int) $this->method_config['grid_column_number'] > 0) ? (int) $this->method_config['grid_column_number'] : 3;
+                    $printed_grid_cols = 0;
+                    while ($printed_grid_cols <= sizeof($s2pMethods) - 1):
+                        echo "<tr>";
+                        for($c=0; $c<$grid_col_number; $c++):
+                            if(isset($s2pMethods[$printed_grid_cols])):
+                                $method = $s2pMethods[$printed_grid_cols];
+                                ?>
+                                <td style='vertical-align: middle; text-align: center; padding: 15px;'>
+                                    <a style="display: block; text-decoration: none;" title="<?php echo $this->__($method['display_name']); ?>" href="javascript: s2pChooseMethod('<?php echo $method['method_id']?>')">
+                                        <?php if ($this->method_config['methods_display_mode'] == 'text'): ?>
+                                        <span style='display: block; float: left;'>&raquo <?php echo $this->__($method['display_name']); ?></span>
+                                        <?php elseif ($this->method_config['methods_display_mode'] == 'logo'): ?>
+                                        <img alt="<?php echo $this->__($method['display_name']); ?>" height="30" src='<?php echo $this->getSkinUrl('images/smart2pay/methods/'.$method['logo_url'])?>' />
+                                        <?php else: ?>
+                                        <img alt="<?php echo $this->__($method['display_name']); ?>" height="30" src='<?php echo $this->getSkinUrl('images/smart2pay/methods/'.$method['logo_url'])?>' />
+                                        <br />
+                                        <span>&raquo <?php echo $this->__($method['display_name']); ?></span>
+                                        <?php endif; ?>
+                                    </a>
+                                </td>
+                                <?php
+                            else:
+                                echo "<td></td>";
+                            endif;
+                            $printed_grid_cols++;
+                        endfor;
+                        echo "</tr>";
+                    endwhile;
+            ?>
+
+            <?php else: //show methods in 2 column table ?>
+                <?php foreach($s2pMethods as $key => $method): ?>
+                    <tr>
+                        <td style='vertical-align: middle;'>
+                            <a style="display: block; text-decoration: none;" title="<?php echo $this->__($method['display_name']); ?>" href="javascript: s2pChooseMethod('<?php echo $method['method_id']?>')">
+                                <?php if ($this->method_config['methods_display_mode'] == 'text'): ?>
+                                <span style='display: block; float: left;'>&raquo <?php echo $this->__($method['display_name']); ?></span>
+                                <?php elseif ($this->method_config['methods_display_mode'] == 'logo'): ?>
+                                <img alt="<?php echo $this->__($method['display_name']); ?>" height="30" src='<?php echo $this->getSkinUrl('images/smart2pay/methods/'.$method['logo_url'])?>' />
+                                <?php else: ?>
+                                <img alt="<?php echo $this->__($method['display_name']); ?>" height="30" src='<?php echo $this->getSkinUrl('images/smart2pay/methods/'.$method['logo_url'])?>' />
+                                <br />
+                                <span>&raquo <?php echo $this->__($method['display_name']); ?></span>
+                                <?php endif; ?>
+                            </a>&nbsp;&nbsp;&nbsp;
+                            <?php echo ($this->method_config['show_text_img']) ? "<br />" : ""?>
+                        </td>
+                        <td style='padding-bottom: 10px; padding-left: 10px;'>
+                            <?php echo $this->__($method['description']); ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+            <?php endif; ?>
+        </table>
+    <?php else: ?>
+        <table>
+            <?php
+            if($this->method_config['show_methods_in_grid']): //show methods in grid
+                $grid_col_number = ((int) $this->method_config['grid_column_number'] > 0) ? (int) $this->method_config['grid_column_number'] : 3;
+                $printed_grid_cols = 0;
+                while ($printed_grid_cols <= sizeof($s2pMethods) - 1):
+                    echo "<tr>";
+                    for($c=0; $c<$grid_col_number; $c++):
+                        if(isset($s2pMethods[$printed_grid_cols])):
+                            $method = $s2pMethods[$printed_grid_cols];
+                            ?>
+                            <td style='vertical-align: middle; text-align: center; padding: 15px;'>
+                                    <span>
+                                        <?php if ($this->method_config['methods_display_mode'] == 'text'): ?>
+                                        <span style='display: block; float: left;'>&raquo <?php echo $this->__($method['display_name']); ?></span>
+                                        <?php elseif ($this->method_config['methods_display_mode'] == 'logo'): ?>
+                                        <img alt="<?php echo $this->__($method['display_name']); ?>" height="30" src='<?php echo $this->getSkinUrl('images/smart2pay/methods/'.$method['logo_url'])?>' />
+                                        <?php else: ?>
+                                        <img alt="<?php echo $this->__($method['display_name']); ?>" height="30" src='<?php echo $this->getSkinUrl('images/smart2pay/methods/'.$method['logo_url'])?>' />
+                                        <br />
+                                        <span>&raquo <?php echo $this->__($method['display_name']); ?></span>
+                                        <?php endif; ?>
+                                    </span>
+                            </td>
+                            <?php
+                        else:
+                            echo "<td></td>";
+                        endif;
+                        $printed_grid_cols++;
+                    endfor;
+                    echo "</tr>";
+                endwhile;
+                ?>
+
+                <?php else: //show methods in 2 column table ?>
+                <?php foreach($s2pMethods as $key => $method): ?>
+                    <tr>
+                        <td style='vertical-align: middle;'>
+                                <span>
+                                    <?php if ($this->method_config['methods_display_mode'] == 'text'): ?>
+                                    <span style='display: block; float: left;'>&raquo <?php echo $this->__($method['display_name']); ?></span>
+                                    <?php elseif ($this->method_config['methods_display_mode'] == 'logo'): ?>
+                                    <img alt="<?php echo $this->__($method['display_name']); ?>" height="30" src='<?php echo $this->getSkinUrl('images/smart2pay/methods/'.$method['logo_url'])?>' />
+                                    <?php else: ?>
+                                    <img alt="<?php echo $this->__($method['display_name']); ?>" height="30" src='<?php echo $this->getSkinUrl('images/smart2pay/methods/'.$method['logo_url'])?>' />
+                                    <br />
+                                    <span>&raquo <?php echo $this->__($method['display_name']); ?></span>
+                                    <?php endif; ?>
+                                </span>&nbsp;&nbsp;&nbsp;
+                            <?php echo ($this->method_config['show_text_img']) ? "<br />" : ""?>
+                        </td>
+                        <td style='padding-bottom: 10px; padding-left: 10px;'>
+                            <?php echo $this->__($method['description']); ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+        </table>
+    <?php endif; ?>
+</div>
