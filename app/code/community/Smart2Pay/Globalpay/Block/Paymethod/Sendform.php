@@ -68,9 +68,20 @@ class Smart2Pay_Globalpay_Block_Paymethod_Sendform extends Mage_Core_Block_Templ
                 $this->form_data['hash'] = Mage::helper('globalpay/helper')->computeSHA256Hash($messageToHash);
                 
                 //
-                    $this->message_to_hash = $messageToHash;
-                    $this->hash = $this->form_data['hash'];
+                $this->message_to_hash = $messageToHash;
+                $this->hash = $this->form_data['hash'];
                 //
+
+                //send e-mail to customer about order creation before redirect to Smart2Pay
+                try{
+                        $order = new Mage_Sales_Model_Order();
+                        $incrementId = Mage::getSingleton('checkout/session')->getLastRealOrderId();
+                        $order->loadByIncrementId($incrementId);
+                        $order->sendNewOrderEmail();
+                }
+                catch (Exception $ex) {
+                }
+
         }        
 }
 ?>

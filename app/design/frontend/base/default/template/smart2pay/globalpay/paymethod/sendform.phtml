@@ -1,4 +1,3 @@
-
 <div style="<?php echo ($this->form_data['debug_form']) ? "display: table;" : "display: none;" ?>">
 
     <?php if($this->form_data['debug_form']): ?>
@@ -197,18 +196,19 @@
 
     function modalIframe(){
         jQuery("#iframe-container").css({height: jQuery('body').height()});
-        jQuery("#iframe-container").appendTo('body').show();
+        jQuery("#iframe-container").appendTo('body');
+        jQuery("#iframe-container").show();
     }
 
     jQuery(document).ready(function() {
 
         jQuery('#s2pform').submit(function(){
-            modalIframe();
+			modalIframe();
         });
         // autosend form if needed
-    <?php if(!$this->form_data['debug_form']): ?>
-        jQuery("#s2pform").submit();
-        <?php endif; ?>
+    <?php if(!$this->form_data['debug_form']):?>
+	jQuery("#s2pform").submit();
+    <?php endif; ?>
         // get/parse smart2pay message
         var onmessage = function(e) {
             console.log(e);

@@ -66,12 +66,8 @@ class Smart2pay_Globalpay_IndexController extends Mage_Core_Controller_Front_Act
 			$orderAmount =  number_format($order->getGrandTotal(), 2, '.', '') * 100;
 			$orderCurrency = $order->getOrderCurrency()->getCurrencyCode();
 
-			if($orderAmount != $response['Amount'] || $orderCurrency != $response['Currency']){
-				$order->addStatusHistoryComment('Smart2Pay :: notification has different amount and/or currency!. Please contact support@smart2pay.com', $payMethod->method_config['order_status_on_4']);
-			}
-			else{
-
-				$order->addStatusHistoryComment('Smart2Pay :: order has been paid. [MethodID:'. $response['MethodID'] .']', $payMethod->method_config['order_status_on_2']);
+			if( strcmp($orderAmount,$response['Amount']) == 0 && $orderCurrency == $response['Currency']){
+				$order->addStatusHistoryComment('Smart2Pay :: order has been paid. [MethodID:'. $response['MethodID'] .']', $payMethod->method_config['order_status_on_2'] );
         	                if ($payMethod->method_config['auto_invoice']) {
                 	            // Create and pay Order Invoice
                         	    if($order->canInvoice()) {
@@ -102,6 +98,9 @@ class Smart2pay_Globalpay_IndexController extends Mage_Core_Controller_Front_Act
 	                            // Inform customer
 	                            $this->informCustomer($order, $response['Amount'], $response['Currency']);
 	                        }
+			}
+			else{
+			 	$order->addStatusHistoryComment('Smart2Pay :: notification has different amount['.$orderAmount.'/'.$response['Amount'] . '] and/or currency['.$orderCurrency.'/' . $response['Currency'] . ']!. Please contact support@smart2pay.com', $payMethod->method_config['order_status_on_4']);
 			}
                         break;
                     // Status = canceled
@@ -205,11 +204,33 @@ class Smart2pay_Globalpay_IndexController extends Mage_Core_Controller_Front_Act
 
     public function infoAction()
     {
+	//	$this->loadLayout();
+  	//      $this->renderLayout();
+
         $query = $this->getRequest()->getParams();
         if (!isset($query['data'])) {
             $this->_redirectUrl(Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK));
         }
-        $this->loadLayout();
-        $this->renderLayout();
+	
+	$paymethod = Mage::getModel('globalpay/pay');
+        $query = $this->getRequest()->getQuery();
+        $data = $query['data'];
+	
+        if ($data == 2){
+		Mage::getSingleton('checkout/session')->addSuccess($paymethod->method_config['message_data_' . $data]);
+		session_write_close();
+	        $this->_redirect('checkout/onepage/success');
+	}
+	else if (in_array($data, array(3, 4))) {
+        	Mage::getSingleton('checkout/session')->addError($paymethod->method_config['message_data_' . $data]);
+        	session_write_close();
+        	$this->_redirect('checkout/cart');
+        } 
+	else {
+        	Mage::getSingleton('checkout/session')->addSuccess($paymethod->method_config['message_data_7']);
+                session_write_close();
+                $this->_redirect('checkout/onepage/success');
+        }
     }
+
 }
