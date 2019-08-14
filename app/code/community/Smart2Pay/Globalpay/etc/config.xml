@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Smart2Pay_Globalpay>
-            <version>1.0.1</version>
+            <version>1.0.2</version>
         </Smart2Pay_Globalpay>
     </modules>
     <frontend>
