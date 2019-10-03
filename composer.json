@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/Smart2Pay",
+    "name": "OpenMageModuleFostering\/Smart2Pay",
     "type": "magento-module",
     "license": "The-Open-Software-License-3.0-(OSL-3.0)",
     "homepage": "",
     "description": "Magento plugin for Smart2Pay Payment Service Provider",
     "authors": [
-    {
-        "name": "Stefan Iancu",
-        "email": "support@smart2pay.com"
-    }
-],
+        {
+            "name": "Stefan Iancu",
+            "email": "support@smart2pay.com"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
